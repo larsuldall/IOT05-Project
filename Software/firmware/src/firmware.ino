@@ -14,8 +14,10 @@ int pirState = LOW;             // we start assuming no motion detected
 int PIRval = 0;                 // variable for reading the PIR pin status
 int calibrateTime = 5000;       // wait for the PIR sensor to calibrate
 int analogTempValue = 0;        // Anolog temperature value
-
-
+int adc_value = 0;
+double tempVariable = 0;
+int actualTime = 0;
+String temp;
 
 // Initial setup
 void setup() {
@@ -23,28 +25,39 @@ void setup() {
     pinMode(pirPin, INPUT);       // declare PIR sensor as input
     pinMode(tempRead, INPUT);     // declare tempSensor as input
 
-    Particle.variable("PIR", PIRval);                       // Cloud variable of PIR value
-    Particle.variable("analogTempValue", analogTempValue);  // Cloud variable of temp 
+    Particle.variable("PIR", PIRval);         // Cloud variable of PIR value
+    Particle.variable("Temperature", tempVariable);  // Cloud variable of temp 
+    Particle.variable("Time", actualTime);
 }
 
 // Program running
-void loop() {
+void loop() 
+{
+  actualTime = millis()/1000; // Secunds that the program has run
 
-  // if the sensor is calibrated
-  if (calibratedPIR()) {
+  // if the sensor is calibrated PIR detects motion
+  if (calibratedPIR()) 
+    {
     // get the data from the sensor
     readThePIRSensor();
 
     // report it out, if the state has changed
     reportThePIRData();
     }
-    delay(1000);
+  
   // Get temperature
-  readTemperatureFunc();
+  if (modulusTime())    // If True (That is every 10 secunds)
+    {
+      if ((actualTime*1000)-millis() == 0) // And if this is true read the temperature.
+      {
+          readTemperatureFunc();
+      }
+    }
 }
 
 
-// Functions
+// FUNCTIONS
+//
 
 // PIR Motion detector
 void readThePIRSensor() {
@@ -52,11 +65,11 @@ void readThePIRSensor() {
 }
 
 bool calibratedPIR() {
-    return millis() - calibrateTime > 0;
+    return millis() - calibrateTime > 0;  // When the calibration time is finished its True
 }
 
 void setLED(int state) {
-    digitalWrite(ledPin, state);
+    digitalWrite(ledPin, state);    
 }
 
 void reportThePIRData() {
@@ -85,8 +98,14 @@ void reportThePIRData() {
 
 // Temperature sensor
 void readTemperatureFunc(){
-    int adc_value = analogRead(tempRead);     // Reads the adc value (max 1024 = 5V) 10mV/1deg C
-    float tempVal = (adc_value*0.80)/10;      // Calculate to Celsius
-    String temp = String(tempVal);            // Convert the Celsius result to a string
-    Particle.publish("temp", temp, PRIVATE);  // Publish an event named "temp" with the data of temp
+    adc_value = analogRead(tempRead);           // Reads the adc value (max 1024 = 5V) 10mV/1deg C
+    float tempValue = (adc_value*0.80)/10;      // Calculate to Celsius
+    tempVariable = tempValue;
+    String temp = String(tempValue);            // Convert the Celsius result to a string
+    Particle.publish("temp", temp, PRIVATE);    // Publish an event named "temp" with the data of temp
+}
+
+bool modulusTime() {    
+    return (millis()/1000) % 60 == 0;     // Takes millisecunds the program has run, into sekunds, and divide with 60
+                                          // so it is only true every 60 sekunds
 }
