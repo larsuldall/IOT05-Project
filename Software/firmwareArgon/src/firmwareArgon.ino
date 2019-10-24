@@ -8,7 +8,7 @@
 // Declare variables
 int pirPin = D0;                // choose the input pin (for PIR sensor)
 int ledPin = D1;                // LED Pin
-int tempRead = A5;              // LM35 Analog pin
+int tempRead = A0;              // LM35 Analog pin
 
 int pirState = LOW;             // we start assuming no motion detected
 int PIRval = 0;                 // variable for reading the PIR pin status
@@ -24,7 +24,7 @@ int hour = 0;
 
 // Initial setup
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(9600);           // Starts serial communication (Used for testing)
     pinMode(ledPin, OUTPUT);      // declare LED as OUTPUT
     pinMode(pirPin, INPUT);       // declare PIR sensor as input
     pinMode(tempRead, INPUT);     // declare tempSensor as input
@@ -32,6 +32,7 @@ void setup() {
     Particle.variable("PIR", PIRval);         // Cloud variable of PIR value
     Particle.variable("Temperature", tempVariable);  // Cloud variable of temp 
     Particle.variable("Hour", hour);
+    Particle.variable("count", count);
 }
 
 // Program running
@@ -49,35 +50,39 @@ void loop()
     // report it out, if the state has changed
     reportThePIRData();
 
-      // Morning routine only runs once a day
-      if (hour >= 7 && hour < 12)
+      // Morning routine only run once a day
+      if (hour >= 7 && hour < 19) //Events should only run once in timeinterval 7 to 9
         {
            if(PIRval == 1 && count < 1)
            {
-           Particle.publish("TurnServoOn", PRIVATE); // Event that the photon subscribes to
+           Particle.publish("TurnServoOn", "Initiate Servo", PRIVATE); // Event that the photon subscribes to
            // Her kommer webhook til at tænde Hue lys
-           // Her kommer webhook til at tænde servoen fra photon
+           Particle.publish("TurnLightsOn", "Hue is starting morning routine", PRIVATE);
            // Her kommer webhook til at tænde radioen
            count = 1;
            }
  
         } else 
           {
-          count = 0;
+          count = 0;  // Restarts count so it ONLY executes ones a day. (First time you get up)
           }
-        
-
-
     }
   
-  // Get temperature
-  if (modulusTime())    // If True (That is every 10 secunds)
+  // Get temperature and Firealarm
+  if (modulusTime())    // If True (That is every 10 seconds)
     {
       if ((actualTime*1000)-millis() == 0) // And if this is true read the temperature.
       {
           readTemperatureFunc();
+
+          // Firealarm
+          if(tempVariable > 26) // If temperature reach 26 or above, the alarm will go off via webhook
+          {
+            Particle.publish("triggerFireAlarm", "It's burning", PRIVATE);
+          }
       }
     }
+  
 
 }
 
@@ -101,7 +106,7 @@ void reportThePIRData() {
         // announce this change by publishing an event
         if (pirState == LOW) {
           // we have just turned on
-          Particle.publish("PhotonMotion", "Motion Detected", PRIVATE);
+          Particle.publish("ArgonMotion", "Motion Detected", PRIVATE);
           
           // Update the current state
           pirState = HIGH;
@@ -111,7 +116,7 @@ void reportThePIRData() {
         if (pirState == HIGH) {
           // we have just turned of
           // Update the current state
-          Particle.publish("PhotonMotion", "Off", PRIVATE);
+          Particle.publish("ArgonMotion", "Off", PRIVATE);
           pirState = LOW;
           setLED(pirState);
         }
@@ -133,6 +138,6 @@ void readTemperatureFunc(){
 }
 
 bool modulusTime() {    
-    return (millis()/1000) % 10 == 0;     // Takes millisecunds the program has run, into sekunds, and divide with 10
+    return (millis()/1000) % 10 == 0;     // Takes millisecunds the program has run, into secunds, and divide with 10
                                           // so it is only true every 10 sekunds
 }

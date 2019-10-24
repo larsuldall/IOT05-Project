@@ -5,5 +5,8 @@
     "files.associations": {
         "*.ino": "cpp",
         "streambuf": "cpp"
-    }
+    },
+    "particle.targetDevice": "Argon",
+    "particle.firmwareVersion": "1.4.0",
+    "particle.targetPlatform": "argon"
 }
