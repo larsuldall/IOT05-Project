@@ -19,6 +19,7 @@ double tempVariable = 0;
 int actualTime = 0;
 int count = 0;
 String temp;
+int burglerAlarmStatus = 0;
 
 int hour = 0; 
 
@@ -26,20 +27,22 @@ int hour = 0;
 void setup() {
     Serial.begin(9600);           // Starts serial communication (Used for testing)
     pinMode(ledPin, OUTPUT);      // declare LED as OUTPUT
-    pinMode(pirPin, INPUT);       // declare PIR sensor as input
+    pinMode(pirPin, INPUT);       // d∏eclare PIR sensor as input
     pinMode(tempRead, INPUT);     // declare tempSensor as input
 
     Particle.variable("PIR", PIRval);         // Cloud variable of PIR value
     Particle.variable("Temperature", tempVariable);  // Cloud variable of temp 
     Particle.variable("Hour", hour);
     Particle.variable("count", count);
+
+    Particle.function("BurglerAlarm", burglerAlarm);
 }
 
 // Program running
 void loop() 
 {
-  hour = Time.hour() + 2; // Stores the current hour (UTC) + 2 for local time
-  actualTime = millis()/1000; // Secunds that the program has run
+  hour = Time.hour() + 1; // Stores the current hour (UTC) + 1 for local time
+  actualTime = millis()/1000; // Seconds that the program has run
 
   // if the sensor is calibrated PIR detects motion
   if (calibratedPIR()) 
@@ -81,6 +84,17 @@ void loop()
             Particle.publish("triggerFireAlarm", "It's burning", PRIVATE);
           }
       }
+    }
+
+  // Burgler alarm
+  if (burglerAlarmStatus == 1)
+    {
+      if (PIRval == 1)
+        {
+          Particle.publish("triggerBurglerAlarm", "You have an intruder", PRIVATE);
+        }
+
+
     }
   
 
@@ -140,4 +154,21 @@ void readTemperatureFunc(){
 bool modulusTime() {    
     return (millis()/1000) % 10 == 0;     // Takes millisecunds the program has run, into secunds, and divide with 10
                                           // so it is only true every 10 sekunds
+}
+
+// Set burgler alarm on/off
+int burglerAlarm(String command) {
+
+    if (command=="on") {
+        burglerAlarmStatus = 1;
+        return 1;
+    }
+    else if (command=="off") {
+        burglerAlarmStatus = 0;
+        return 0;
+    }
+    else {
+        return -1;
+    }
+
 }
