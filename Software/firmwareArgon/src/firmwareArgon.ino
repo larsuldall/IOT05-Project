@@ -27,7 +27,7 @@ int hour = 0;
 void setup() {
     Serial.begin(9600);           // Starts serial communication (Used for testing)
     pinMode(ledPin, OUTPUT);      // declare LED as OUTPUT
-    pinMode(pirPin, INPUT);       // d∏eclare PIR sensor as input
+    pinMode(pirPin, INPUT);       // declare PIR sensor as input
     pinMode(tempRead, INPUT);     // declare tempSensor as input
 
     Particle.variable("PIR", PIRval);         // Cloud variable of PIR value
@@ -54,7 +54,7 @@ void loop()
     reportThePIRData();
 
       // Morning routine only run once a day
-      if (hour >= 7 && hour < 19) //Events should only run once in timeinterval 7 to 9
+      if (hour >= 6 && hour < 9) //Events should only run once in timeinterval 6 to 9
         {
            if(PIRval == 1 && count < 1)
            {
@@ -87,10 +87,11 @@ void loop()
     }
 
   // Burgler alarm
-  if (burglerAlarmStatus == 1)
+  if (burglerAlarmStatus == 1) // Activated with particle function in APP
     {
-      if (PIRval == 1)
+      if (PIRval == 1)        // When motion is detected
         {
+          // Publish an event that the HUE webhook is 
           Particle.publish("triggerBurglerAlarm", "You have an intruder", PRIVATE);
         }
 
