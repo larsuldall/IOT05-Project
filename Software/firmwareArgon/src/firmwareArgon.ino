@@ -58,10 +58,12 @@ void loop()
         {
            if(PIRval == 1 && count < 1)
            {
+           // Event to engage servo to the electric kettle
            Particle.publish("TurnServoOn", "Initiate Servo", PRIVATE); // Event that the photon subscribes to
-           // Her kommer webhook til at tænde Hue lys
+           // Event to the webhook to turn HUE lights on
            Particle.publish("TurnLightsOn", "Hue is starting morning routine", PRIVATE);
            // Her kommer webhook til at tænde radioen
+
            count = 1;
            }
  
@@ -82,6 +84,7 @@ void loop()
           if(tempVariable > 26) // If temperature reach 26 or above, the alarm will go off via webhook
           {
             Particle.publish("triggerFireAlarm", "It's burning", PRIVATE);
+            Particle.publish("triggerMailgunFireNotice", PRIVATE);
           }
       }
     }
@@ -91,9 +94,16 @@ void loop()
     {
       if (PIRval == 1)        // When motion is detected
         {
+          Particle.publish("triggerMailgunBurglerNotice", PRIVATE);
+          while(burglerAlarmStatus==1)
+          {
           // Publish an event that the HUE webhook is 
           Particle.publish("triggerBurglerAlarm", "You have an intruder", PRIVATE);
+          Particle.publish("triggerMailgunBurglerNotice", PRIVATE);
+          delay(10000); // On
+          }
         }
+        
 
 
     }
@@ -153,8 +163,8 @@ void readTemperatureFunc(){
 }
 
 bool modulusTime() {    
-    return (millis()/1000) % 10 == 0;     // Takes millisecunds the program has run, into secunds, and divide with 10
-                                          // so it is only true every 10 sekunds
+    return (millis()/1000) % 10 == 0;     // Takes millisecunds the program has run, into seconds, and divide with 10
+                                          // so it is only true every 10 seconds
 }
 
 // Set burgler alarm on/off
