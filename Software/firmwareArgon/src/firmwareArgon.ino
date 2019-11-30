@@ -13,15 +13,15 @@ int tempRead = A0;              // LM35 Analog pin
 int pirState = LOW;             // we start assuming no motion detected
 int PIRval = 0;                 // variable for reading the PIR pin status
 int calibrateTime = 5000;       // wait for the PIR sensor to calibrate
-int analogTempValue = 0;        // Anolog temperature value
-int adc_value = 0;
-double tempVariable = 0;
-int actualTime = 0;
-int count = 0;
+int analogTempValue = 0;        // Analog temperature value
+int adc_value = 0;              // The PIR adc value
+double tempVariable = 0;        // Temperature in celsius for the cloud
+int actualTime = 0;             // Seconds that the program has run
+int count = 0;                  // Either 0 or 1, for the morning routine
 String temp;
-int burglerAlarmStatus = 0;
+int burglerAlarmStatus = 0;     // Either 0 or 1 to activate the burgler alarm
 
-int hour = 0; 
+int hour = 0;                   // The actual local-time  hour used for morning routine
 
 // Initial setup
 void setup() {
@@ -30,10 +30,9 @@ void setup() {
     pinMode(pirPin, INPUT);       // declare PIR sensor as input
     pinMode(tempRead, INPUT);     // declare tempSensor as input
 
-    Particle.variable("PIR", PIRval);         // Cloud variable of PIR value
+    Particle.variable("PIR", PIRval);                // Cloud variable of PIR value
     Particle.variable("Temperature", tempVariable);  // Cloud variable of temp 
-    Particle.variable("Hour", hour);
-    Particle.variable("count", count);
+    Particle.variable("Hour", hour);                 // Used for testing
 
     Particle.function("BurglerAlarm", burglerAlarm);
 }
@@ -54,7 +53,7 @@ void loop()
     reportThePIRData();
 
       // Morning routine only run once a day
-      if (hour >= 6 && hour < 9) //Events should only run once in timeinterval 6 to 9
+      if (hour >= 6 && hour < 10) //Events should only run once in timeinterval 6 to 9
         {
            if(PIRval == 1 && count < 1)
            {
@@ -64,7 +63,7 @@ void loop()
            Particle.publish("TurnLightsOn", "Hue is starting morning routine", PRIVATE);
            // Her kommer webhook til at tænde radioen
 
-           count = 1;
+           count = 1; // As long as we are between 06-09, the events only gets published once
            }
  
         } else 
@@ -83,8 +82,9 @@ void loop()
           // Firealarm
           if(tempVariable > 26) // If temperature reach 26 or above, the alarm will go off via webhook
           {
-            Particle.publish("triggerFireAlarm", "It's burning", PRIVATE);
-            Particle.publish("triggerMailgunFireNotice", PRIVATE);
+            // Event to webhook for mailgun and HUE
+            Particle.publish("HUE_fire", "It's burning", PRIVATE);
+            Particle.publish("MG_fire", PRIVATE);
           }
       }
     }
@@ -94,21 +94,15 @@ void loop()
     {
       if (PIRval == 1)        // When motion is detected
         {
-          Particle.publish("triggerMailgunBurglerNotice", PRIVATE);
-          while(burglerAlarmStatus==1)
+          while(burglerAlarmStatus==1) // This loop will be true until I deactivate the alarm in the APP
           {
-          // Publish an event that the HUE webhook is 
-          Particle.publish("triggerBurglerAlarm", "You have an intruder", PRIVATE);
-          Particle.publish("triggerMailgunBurglerNotice", PRIVATE);
-          delay(10000); // On
+          // Publish an events for Mailgun and HUE 
+          Particle.publish("HUE_burgler", "You have an intruder", PRIVATE);
+          Particle.publish("MG_burgler", PRIVATE);
+          delay(10000); // Sends an email every 10 seconds, and keeps the HUE flashing red
           }
         }
-        
-
-
     }
-  
-
 }
 
 
@@ -121,7 +115,7 @@ void readThePIRSensor() {
 }
 
 bool calibratedPIR() {
-    return millis() - calibrateTime > 0;  // When the calibration time is finished its True
+    return millis() - calibrateTime > 0;  // When the calibration time (5 sec) is finished its True
 }
 
 void reportThePIRData() {
@@ -163,8 +157,8 @@ void readTemperatureFunc(){
 }
 
 bool modulusTime() {    
-    return (millis()/1000) % 10 == 0;     // Takes millisecunds the program has run, into seconds, and divide with 10
-                                          // so it is only true every 10 seconds
+    return (millis()/1000) % 10 == 0;     // Takes milliseconds the program has run into seconds, and divide with 10
+                                          // so it is only true every 10 seconds. (Used to read temperature every 10 sec)
 }
 
 // Set burgler alarm on/off
