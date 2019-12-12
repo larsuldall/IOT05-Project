@@ -53,7 +53,7 @@ void loop()
     reportThePIRData();
 
       // Morning routine only run once a day
-      if (hour >= 6 && hour < 10) //Events should only run once in timeinterval 6 to 9
+      if (hour >= 6 && hour < 15) //Events should only run once in timeinterval 6 to 9
         {
            if(PIRval == 1 && count < 1)
            {
@@ -110,12 +110,12 @@ void loop()
 //
 
 // PIR Motion detector
-void readThePIRSensor() {
-    PIRval = digitalRead(pirPin);   // Reads 0 or 1
-}
-
 bool calibratedPIR() {
     return millis() - calibrateTime > 0;  // When the calibration time (5 sec) is finished its True
+}
+
+void readThePIRSensor() {
+    PIRval = digitalRead(pirPin);   // Reads 0 or 1
 }
 
 void reportThePIRData() {
